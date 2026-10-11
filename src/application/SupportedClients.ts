@@ -445,6 +445,13 @@ export const SUPPORTED_CLIENT_DEFINITIONS = [
     format: "json",
   },
   {
+    name: "droid",
+    displayName: "Factory Droid",
+    configPath: [".factory", "mcp.json"],
+    markerPath: [".factory"],
+    format: "json",
+  },
+  {
     name: "vscode",
     displayName: "VS Code",
     configPath: (context: ClientPathContext) =>

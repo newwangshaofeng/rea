@@ -70,8 +70,8 @@ running server or its registration.
 
 The npm release checked on **2026-10-11** was **6.3.0**, published from
 [`74cf9e14`](https://github.com/morluto/rea/commit/74cf9e1401fcd89482fe39c27cc898f5858e9b72),
-with bundled skill version 34. It does not include automatic Qwen Code, Pi, or
-Hermes registration: `setup --client qwen_code`, `setup --client pi`, and
+with bundled skill version 34. It does not include automatic Qwen Code, Factory Droid, Pi, or
+Hermes registration: `setup --client qwen_code`, `setup --client droid`, `setup --client pi`, and
 `setup --client hermes` reject those IDs before writing configuration. It also
 does not honor `OPENCODE_CONFIG_DIR` when selecting OpenCode's configuration
 directory. These workflows below require a source build or a later release
@@ -146,6 +146,7 @@ listed after the table because its connector is not one of these files:
 | GitHub Copilot CLI | `copilot_cli`    |
 | Command Code       | `commandcode`    |
 | Qwen Code          | `qwen_code`      |
+| Factory Droid      | `droid`          |
 | VS Code            | `vscode`         |
 | Grok Build         | `grok_build`     |
 | OMP                | `omp`            |
@@ -226,6 +227,12 @@ standalone CLI check.
 
 Codex treats an unset or empty `CODEX_HOME` as `~/.codex`. Devin honors
 `XDG_CONFIG_HOME` for its `devin/mcp_config.json` on non-Windows systems.
+
+For Factory Droid, setup registers `rea` in the `mcpServers` table of the
+user-level `~/.factory/mcp.json` (`%USERPROFILE%\.factory\mcp.json` on Windows).
+Factory Droid also discovers personal skills in `~/.agents/skills`, where setup
+installs the bundled workflow. Setup configures only the user scope; project-level
+`.factory/mcp.json` entries take precedence when defined in a repository.
 
 For OMP, setup writes a `type: "stdio"` entry to the user-level
 `~/.omp/agent/mcp.json`. It follows `PI_CONFIG_DIR` and
