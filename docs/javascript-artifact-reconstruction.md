@@ -122,6 +122,13 @@ deadline per source, including startup and fact transfer. Select
 analyzer; the caller's `NODE_OPTIONS` still controls the CLI/MCP process heap.
 V8 old-space limits do not impose a process RSS limit.
 
+The owned process and its private runtime directory require the Windows native
+controls on Windows, so a Windows source checkout without the built artifact
+reports `capability_unavailable` before any source is parsed and retains only
+the inventory as partial Evidence. Run `npm run provision:windows-native` in
+that checkout to extract the matching published artifact; see
+[Windows source checkouts](windows-ghidra-p0.md#source-checkouts-on-windows).
+
 A source that exhausts the analyzer heap does not terminate the CLI/MCP
 process. Completed static facts are retained, other files can still be analyzed,
 and unexamined semantic relationships remain explicit unknowns. The parent

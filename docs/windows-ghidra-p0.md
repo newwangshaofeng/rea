@@ -162,6 +162,28 @@ build lane and native boundary checks. Development tarballs without the built
 artifact report native controls unavailable; publishing requires the verified
 artifact and manifest.
 
+### Source checkouts on Windows
+
+`native/windows/build/` is ignored by Git and the artifact lane requires Linux
+and MinGW-w64, so a Windows source checkout has no native artifact and reports
+`capability_unavailable` for operations that need the native boundary, such as
+`analyze_javascript_application`. Provision the matching published artifact
+instead of building it:
+
+```powershell
+npm run provision:windows-native
+npm run verify:windows-native:artifact
+```
+
+The script reads this checkout's version, downloads that exact published
+`rea-agents` tarball, checks the registry's published tarball integrity, and
+extracts only `manifest.json` and `rea-windows-x64.node` after validating the
+declared version, ABI, Node-API level, artifact SHA-256, and x64 PE32+ image.
+It never loads the addon. Run `npm run provision:windows-native -- --check` to
+report whether the artifact is already present without changing anything. Stop
+every REA CLI/MCP process using the checkout first; a running REA keeps the
+addon mapped and blocks the replacement.
+
 ```powershell
 npm run verify:windows-native
 npm run verify:ghidra:windows
