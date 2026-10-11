@@ -124,7 +124,7 @@ describe("Factory Droid client lifecycle", () => {
 });
 
 describe("Factory Droid profile setup", () => {
-  it("installs and removes the shared skill", async () => {
+  it("installs and removes the personal skill under .factory/skills", async () => {
     const home = await createTestTempDirectory("rea-droid-profile-");
     const profile = join(home, ".factory");
     const environment = {
@@ -142,7 +142,7 @@ describe("Factory Droid profile setup", () => {
       status: "configured",
     });
     expect(await setup.installSkill([client.name])).toBe("installed");
-    const skill = join(home, ".agents", "skills", PRODUCT_IDENTITY.skillName);
+    const skill = join(home, ".factory", "skills", PRODUCT_IDENTITY.skillName);
     await writeFile(join(skill, "user-notes.txt"), "user-authored");
     expect(await readFile(join(skill, "SKILL.md"), "utf8")).toContain(
       "reverse-engineer-anything",
@@ -170,6 +170,11 @@ describe("Factory Droid profile setup", () => {
       });
     expect(await readFile(join(skill, "user-notes.txt"), "utf8")).toBe(
       "user-authored",
+    );
+    await expect(access(join(home, ".agents", "skills"))).rejects.toMatchObject(
+      {
+        code: "ENOENT",
+      },
     );
   });
 });

@@ -447,6 +447,7 @@ export const SUPPORTED_CLIENT_DEFINITIONS = [
   {
     name: "droid",
     displayName: "Factory Droid",
+    skillPath: [".factory", "skills"],
     configPath: [".factory", "mcp.json"],
     markerPath: [".factory"],
     format: "json",

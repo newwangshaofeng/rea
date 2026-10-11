@@ -229,10 +229,10 @@ Codex treats an unset or empty `CODEX_HOME` as `~/.codex`. Devin honors
 `XDG_CONFIG_HOME` for its `devin/mcp_config.json` on non-Windows systems.
 
 For Factory Droid, setup registers `rea` in the `mcpServers` table of the
-user-level `~/.factory/mcp.json` (`%USERPROFILE%\.factory\mcp.json` on Windows).
-Factory Droid also discovers personal skills in `~/.agents/skills`, where setup
-installs the bundled workflow. Setup configures only the user scope; project-level
-`.factory/mcp.json` entries take precedence when defined in a repository.
+user-level `~/.factory/mcp.json` (`%USERPROFILE%\.factory\mcp.json` on Windows)
+and installs the bundled skill into `~/.factory/skills`. Setup configures only
+the user scope; project-level `.factory/mcp.json` entries take precedence when
+defined in a repository.
 
 For OMP, setup writes a `type: "stdio"` entry to the user-level
 `~/.omp/agent/mcp.json`. It follows `PI_CONFIG_DIR` and
