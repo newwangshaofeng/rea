@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PendingOperations } from "../../../src/process/PendingOperations.js";
-import { PrivateRuntimeRoot } from "../../../src/process/PrivateRuntimeRoot.js";
+import {
+  PrivateRuntimeRoot,
+  privateRuntimeRootCapability,
+} from "../../../src/process/PrivateRuntimeRoot.js";
 import { ProviderStartupDeadline } from "../../../src/process/ProviderDeadline.js";
 import { cleanupOwnedProcessGroup } from "../../../src/process/ProcessOwnership.js";
 import {
@@ -28,6 +31,19 @@ import {
 const processFixturePath = fileURLToPath(
   new URL("../../fixtures/providerProcess.mjs", import.meta.url),
 );
+
+// Windows privacy and ownership come from the verified native artifact rather
+// than a POSIX mode bit. These cases report a named skip instead of asserting a
+// weaker observation when the host cannot establish the boundary at all.
+const windowsFailClosedSkipReason =
+  process.platform === "win32"
+    ? "a real Windows host reports its own native loader state instead of the POSIX platform-override reason"
+    : false;
+const hostPrivateRuntimeUnavailableSkipReason =
+  process.platform === "win32" &&
+  !privateRuntimeRootCapability("win32").available
+    ? `requires native DACL authority: ${String(privateRuntimeRootCapability("win32").reason)}`
+    : false;
 
 const waitForPidExit = async (
   pid: number,
@@ -52,30 +68,39 @@ afterEach(() => {
 });
 
 describe("provider process runtime and wait primitives", () => {
-  it("allocates a private runtime root and removes it idempotently", async () => {
-    const runtime = await PrivateRuntimeRoot.create({
-      parent: tmpdir(),
-      prefix: "rea-provider-test-",
-    });
-    expect((await stat(runtime.path)).mode & 0o777).toBe(0o700);
+  it.skipIf(hostPrivateRuntimeUnavailableSkipReason)(
+    "allocates a private runtime root and removes it idempotently",
+    async () => {
+      const runtime = await PrivateRuntimeRoot.create({
+        parent: tmpdir(),
+        prefix: "rea-provider-test-",
+      });
+      // Windows establishes privacy with the native DACL rather than a POSIX
+      // mode bit, so the mode claim is only meaningful on POSIX hosts.
+      if (process.platform !== "win32")
+        expect((await stat(runtime.path)).mode & 0o777).toBe(0o700);
 
-    const first = runtime.close();
-    const second = runtime.close();
-    expect(second).toBe(first);
-    await Promise.all([first, second]);
-    await expect(access(runtime.path)).rejects.toMatchObject({
-      code: "ENOENT",
-    });
-  });
+      const first = runtime.close();
+      const second = runtime.close();
+      expect(second).toBe(first);
+      await Promise.all([first, second]);
+      await expect(access(runtime.path)).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    },
+  );
 
-  it("fails closed for a Windows runtime root without native DACL authority", async () => {
-    await expect(
-      PrivateRuntimeRoot.create({ platform: "win32" }),
-    ).rejects.toMatchObject({
-      code: "private-runtime-root-authority-unavailable",
-      message: WINDOWS_NATIVE_AUTHORITY_UNAVAILABLE_REASON,
-    });
-  });
+  it.skipIf(windowsFailClosedSkipReason)(
+    "fails closed for a Windows runtime root without native DACL authority",
+    async () => {
+      await expect(
+        PrivateRuntimeRoot.create({ platform: "win32" }),
+      ).rejects.toMatchObject({
+        code: "private-runtime-root-authority-unavailable",
+        message: WINDOWS_NATIVE_AUTHORITY_UNAVAILABLE_REASON,
+      });
+    },
+  );
 
   it("classifies external cancellation during startup", async () => {
     vi.useFakeTimers();
@@ -365,7 +390,16 @@ describe("provider process host injection", () => {
       arguments: ["-e", "process.stdout.write(process.env.REA_HOST_TEST)"],
       runId: "injected-host-run",
       platform: "win32",
-      hostEnvironment: { PATH: process.env.PATH, REA_HOST_TEST: "host-value" },
+      hostEnvironment: {
+        PATH: process.env.PATH,
+        // A real Windows child cannot initialize without SystemRoot. It is host
+        // plumbing rather than a provider-selected value, so including it keeps
+        // the injected environment minimal without weakening the claim below.
+        ...(process.platform === "win32"
+          ? { SystemRoot: process.env.SystemRoot }
+          : {}),
+        REA_HOST_TEST: "host-value",
+      },
       env: { REA_HOST_TEST: "spawn-override" },
     });
     try {
@@ -443,9 +477,16 @@ describe("provider process spawning primitives", () => {
         runId,
         leaderPid: spawned.process.pid,
         processGroupId: spawned.process.pid,
-        expectedCommand: process.execPath,
         expectedParentPid: process.pid,
+        // Windows ownership is retained by the native Job Object handle rather
+        // than re-matched against a process table, so it commits no argv
+        // command there; the POSIX process group does.
+        ...(process.platform === "win32"
+          ? {}
+          : { expectedCommand: process.execPath }),
       });
+      if (process.platform === "win32")
+        expect(spawned.ownership).not.toHaveProperty("expectedCommand");
       expect(spawned.process.stdout).not.toBeNull();
       expect(spawned.process.stderr).not.toBeNull();
     } finally {
